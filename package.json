@@ -1,0 +1,30 @@
+{
+  "name": "unipi-mqtt-ng",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint . --ext .ts",
+    "compile": "tsc",
+    "test": "jest",
+    "build": "npm run lint && npm run test && npm run compile"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.2.0",
+    "@types/ws": "^8.18.1",
+    "eslint": "^9.39.2",
+    "globals": "^17.3.0",
+    "jiti": "^2.6.1",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0"
+  },
+  "private": true,
+  "dependencies": {
+    "async-mqtt": "^2.6.3",
+    "ws": "^8.19.0",
+    "yaml": "^2.8.2"
+  }
+}

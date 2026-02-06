@@ -1,0 +1,128 @@
+$schema: "http://json-schema.org/draft/2020-12/schema#"
+$id: https://blackbit.be/schemas/unipi-evok-mqtt/v1/config
+type: object
+required:
+  - mqtt
+  - evok
+properties:
+  $schema:
+    type: string
+    const: https://blackbit.be/schemas/unipi-evok-mqtt/v1/config
+  mqtt:
+    type: object
+    required:
+      - brokerUrl
+    properties:
+      brokerUrl:
+        type: string
+      username:
+        type: string
+      password:
+        type: string
+      clientId:
+        type: string
+      debugTopicName:
+        type: string
+    additionalProperties: false
+  evok:
+    type: object
+    required:
+      - id
+      - devices
+      - options
+    properties:
+      id:
+        type: string
+      websocketUrl:
+        type: string
+      devices:
+        type: object
+        required:
+          - relays
+          - inputs
+        properties:
+          relays:
+            type: array
+            items:
+              type: object
+              required:
+                - id
+                - dev
+                - circuit
+                - relayType
+              properties:
+                id:
+                  type: string
+                  pattern: "^[a-zA-Z0-9]+$"
+                name:
+                  type: string
+                dev:
+                  type: string
+                  enum:
+                    - relay
+                circuit:
+                  type: string
+                pulse:
+                  type: boolean
+                relayType:
+                  type: string
+                  enum:
+                    - physical
+                    - digital
+                as:
+                  type: string
+                  enum:
+                    - switch
+                    - light
+                    - fan
+              additionalProperties: false
+          inputs:
+            type: array
+            items:
+              type: object
+              required:
+                - id
+                - dev
+                - circuit
+              properties:
+                id:
+                  type: string
+                  pattern: "^[a-zA-Z0-9]+$"
+                name:
+                  type: string
+                dev:
+                  type: string
+                  enum:
+                    - input
+                circuit:
+                  type: string
+                button:
+                  type: boolean
+                disableDoublePress:
+                  type: boolean
+                disableTriplePress:
+                  type: boolean
+                disableLongPress:
+                  type: boolean
+                disableRepeatedLongPress:
+                  type: boolean
+              additionalProperties: false
+        additionalProperties: false
+      options:
+        type: object
+        properties:
+          pulseDurationMs:
+            type: integer
+          maxNextPressDelayMs:
+            type: integer
+          maxRepeatedPressDelayMs:
+            type: integer
+          persistPulseRelayStates:
+            type: boolean
+          persistPulseRelayStatesMinIntervalMs:
+            type: integer
+          persistPulseRelayStatesTo:
+            type: string
+        additionalProperties: false
+    additionalProperties: false
+additionalProperties: false
