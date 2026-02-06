@@ -13,3 +13,4 @@ yarn-error.log*
 /.vscode/*
 /config/config.yaml
 /dist
+.state.json

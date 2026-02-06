@@ -71,7 +71,7 @@ async function stopApplication() {
     // Stop MQTT
     await stopMQTT();
     // Stop Evok
-    await stopEvok();
+    await stopEvok(config!.evok);
     removeMQTTConnectedListener(onMQTTConnected);
 }
 

@@ -2,6 +2,10 @@ import {WebSocket} from "ws";
 import {IEvokConfig} from "../config/evok-config";
 import {EventEmitter} from "node:events"
 import {EEvokDeviceType, IEvokDeviceConfig} from "../config/evok-device-config";
+import {createHash} from "node:crypto";
+import * as fs from "node:fs";
+import path from "node:path";
+import {config} from "typescript-eslint";
 
 export type TRelayState = 0 | 1;
 export type TInputState = 0 | 1;
@@ -43,6 +47,8 @@ let evokConfig: IEvokConfig | null = null;
 const relayStates: Map<string, IRelayState> = new Map();
 const digitalInputStates: Map<string, IDigitalInputState> = new Map();
 let initialized = false;
+let statePersistInterval: NodeJS.Timeout | null = null;
+let lastPersistedStatesHash: string | null = null;
 
 /**
  * Starts the Evok connection
@@ -80,6 +86,82 @@ export async function startEvok(config: IEvokConfig) {
             evok.on("error", (error) => {
                 console.error("Evok error:", error);
             });
+            if (evokConfig.options.persistPulseRelayStates) {
+                // On startup, load the persisted pulse relay states and apply them
+                await loadPulseRelayStates(config);
+                // If configured to persist pulse relay states, start an interval to save the states every 5 seconds
+                statePersistInterval = setInterval(() => {
+                    savePulseRelayStates(config).catch((error) => {
+                        console.error("Error saving pulse relay states:", error);
+                    });
+                }, Math.max(1000, evokConfig.options.persistPulseRelayStatesMinIntervalMs || 5000));
+            }
+        }
+    }
+}
+
+async function savePulseRelayStates(config: IEvokConfig) {
+    // We only persist the states of pulse relays, as non-pulse relays will report their state on startup
+    const statesToPersist: Array<{ id: string, state: TRelayState, lastChanged: number }> = []
+    for (const [deviceId, relayState] of relayStates.entries()) {
+        if (relayState.isPulse) {
+            statesToPersist.push({
+                id: deviceId,
+                state: relayState.state,
+                lastChanged: relayState.lastChanged
+            });
+        }
+    }
+    // Sort the array with states to persist by device ID to ensure consistent order
+    statesToPersist.sort((a, b) => a.id.localeCompare(b.id));
+    // Calculate the sha256 hash of the states to persist, to avoid unnecessary writes if the states haven't changed
+    const statesHash = createHash("sha256");
+    for (const state of statesToPersist) {
+        statesHash.update(state.id);
+        statesHash.update(state.state.toString());
+        statesHash.update(state.lastChanged.toString());
+    }
+    const statesHashValue = statesHash.digest("hex");
+    // We save the states a JSON file in the given directory, only if the hash changed since the last save,
+    if (statesHashValue !== lastPersistedStatesHash) {
+        const filePath = config!.options.persistPulseRelayStatesTo || ".evok-pulse-relay-states.json";
+        const absoluteFilePath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
+        await fs.promises.writeFile(absoluteFilePath, JSON.stringify(statesToPersist), "utf-8");
+        console.debug("Saved pulse relay states to disk");
+        lastPersistedStatesHash = statesHashValue;
+    }
+}
+
+async function loadPulseRelayStates(config: IEvokConfig) {
+    const filePath = config.options.persistPulseRelayStatesTo || ".evok-pulse-relay-states.json";
+    const absoluteFilePath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
+    try {
+        const data = await fs.promises.readFile(absoluteFilePath, "utf-8");
+        const states: Array<{ id: string, state: TRelayState, lastChanged: number }> = JSON.parse(data);
+        for (const {id, state, lastChanged} of states) {
+            // We set the state of the relay to the persisted state. This will cause evok to report the new state back, which will update our internal state and notify listeners.
+            const relayState = relayStates.get(id);
+            if (relayState) {
+                // We'll update the relay state without raising events.
+                // This is because we are restoring the last known state, not applying a new state.
+                relayState.state = state;
+                relayState.lastChanged = lastChanged;
+            }
+        }
+        console.info("Loaded pulse relay states from disk");
+        // Recalculate the hash of the loaded states to avoid unnecessary saves on startup
+        const statesHash = createHash("sha256");
+        for (const {id, state, lastChanged} of states) {
+            statesHash.update(id);
+            statesHash.update(state.toString());
+            statesHash.update(lastChanged.toString());
+        }
+        lastPersistedStatesHash = statesHash.digest("hex");
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+            console.info("No persisted pulse relay states found, starting with empty states");
+        } else {
+            console.error("Error loading pulse relay states:", error);
         }
     }
 }
@@ -87,10 +169,17 @@ export async function startEvok(config: IEvokConfig) {
 /**
  * Stops the MQTT connection
  */
-export async function stopEvok() {
+export async function stopEvok(config: IEvokConfig) {
     console.info("Stopping Evok service...");
     if (evok) {
         stopping = true;
+        if (statePersistInterval) { // Persistence enabled
+            // Stop the state persist interval if it is running
+            clearInterval(statePersistInterval);
+            statePersistInterval = null;
+            // Finally, save the pulse relay states one last time on shutdown
+            await savePulseRelayStates(config);
+        }
         const oldEvok = evok;
         evok = null;
         oldEvok.close();
