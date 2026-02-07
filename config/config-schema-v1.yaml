@@ -1,4 +1,4 @@
-$schema: "http://json-schema.org/draft/2020-12/schema#"
+$schema: "https://json-schema.org/draft/2020-12/schema"
 $id: https://blackbit.be/schemas/unipi-evok-mqtt/v1/config
 type: object
 required:
@@ -7,7 +7,14 @@ required:
 properties:
   $schema:
     type: string
-    const: https://blackbit.be/schemas/unipi-evok-mqtt/v1/config
+    const: "https://blackbit.be/schemas/unipi-evok-mqtt/v1/config"
+  loglevel:
+    type: string
+    enum:
+      - error
+      - warn
+      - info
+      - debug
   mqtt:
     type: object
     required:

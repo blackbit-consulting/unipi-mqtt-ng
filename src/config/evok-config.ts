@@ -37,6 +37,10 @@ export interface IEvokOptionsConfig {
      */
     maxRepeatedPressDelayMs?: number
     /**
+     * The minimum duration in milliseconds to consider a button press as a long press.
+     */
+    minLongPressDelayMs?: number
+    /**
      * If true, the states of pulse relays will be persisted to a file to allow state restoration on restart.
      */
     persistPulseRelayStates?: boolean

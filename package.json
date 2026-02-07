@@ -1,16 +1,31 @@
 {
-  "name": "unipi-mqtt-ng",
-  "version": "1.0.0",
-  "description": "",
+  "name": "@blackbit.be/unipi-mqtt-ng",
+  "version": "1.0.1",
+  "description": "Unipi Evok to MQTT bridge for Home Assistant",
   "main": "dist/index.js",
   "scripts": {
     "lint": "eslint . --ext .ts",
     "compile": "tsc",
     "test": "jest",
-    "build": "npm run lint && npm run test && npm run compile"
+    "build": "npm run clean && npm run lint && npm run compile",
+    "clean": "rm -rf dist"
   },
+  "bin": {
+    "unipi-mqtt-ng": "./bin/unipi-mqtt-ng.sh"
+  },
+  "files": [
+    "config/config-schema-v1.yaml",
+    "dist/**/*",
+    "bin/unipi-mqtt-ng.sh",
+    "README.md",
+    "history.md",
+    "LICENSE",
+    "package.json",
+    "package-lock.json"
+  ],
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@types/ajv": "^0.0.5",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.2.0",
     "@types/ws": "^8.18.1",
@@ -23,6 +38,8 @@
   },
   "private": true,
   "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "async-mqtt": "^2.6.3",
     "ws": "^8.19.0",
     "yaml": "^2.8.2"

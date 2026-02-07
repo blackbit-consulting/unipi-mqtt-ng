@@ -5,7 +5,6 @@ import {EEvokDeviceType, IEvokDeviceConfig} from "../config/evok-device-config";
 import {createHash} from "node:crypto";
 import * as fs from "node:fs";
 import path from "node:path";
-import {config} from "typescript-eslint";
 
 export type TRelayState = 0 | 1;
 export type TInputState = 0 | 1;
@@ -206,10 +205,10 @@ async function onEvokMessage(message: Buffer) {
         // If the device is a relay, call the handle relay update function
         switch (update.dev) {
             case "relay":
-                await handleRelayUpdate(update as IEvokRelayUpdate);
+                await handleRelayUpdate(update as IEvokRelayUpdate, isNeuronUpdate);
                 break;
             case "input":
-                await handleDigitalInputUpdate(update as IEvokDigitalInputUpdate);
+                await handleDigitalInputUpdate(update as IEvokDigitalInputUpdate, isNeuronUpdate);
                 break;
         }
     }
@@ -254,7 +253,7 @@ interface IEvokDigitalInputUpdate {
     value: TInputState;
 }
 
-async function handleRelayUpdate(update: IEvokRelayUpdate) {
+async function handleRelayUpdate(update: IEvokRelayUpdate, statusOnly: boolean) {
     if (!evokConfig) {
         return console.warn("No evok configured. Ignoring message.");
     }
@@ -281,7 +280,7 @@ async function handleRelayUpdate(update: IEvokRelayUpdate) {
         relayStates.set(configuredDevice.id, relayState);
     }
 
-    if (configuredDevice.pulse) {
+    if (configuredDevice.pulse && !statusOnly) {
         // If the relay is configured as a pulse relay, every "on" command should be followed by an "off" command after the pulse duration
         // It is the "off" after an "on" that will trigger the state. The on and off will trigger pulseState.
         if (update.value === 1) { // State "on" received
@@ -309,7 +308,7 @@ async function handleRelayUpdate(update: IEvokRelayUpdate) {
     }
 }
 
-async function handleDigitalInputUpdate(update: IEvokDigitalInputUpdate) {
+async function handleDigitalInputUpdate(update: IEvokDigitalInputUpdate, statusOnly: boolean) {
     console.debug(`Received digital input update: ${JSON.stringify(update)}`);
     if (!evokConfig) {
         return console.warn("No evok configured. Ignoring message.");
@@ -337,7 +336,22 @@ async function handleDigitalInputUpdate(update: IEvokDigitalInputUpdate) {
         digitalInputStates.set(configuredDevice.id, inputState);
     }
 
-    if (update.value !== inputState?.state) {
+    if (update.value !== inputState?.state && !statusOnly) {
+        if (configuredDevice.button) {
+            // Button input
+            eventEmitter.emit("button", {
+                id: configuredDevice.id,
+                state: inputState.state,
+                press: inputState.state === 1 ? "down" : "up"
+            });
+        } else {
+            // Regular input
+            eventEmitter.emit("input", {
+                id: configuredDevice.id,
+                state: inputState.state,
+                press: inputState.state === 1 ? "high" : "low"
+            });
+        }
         if (configuredDevice.button && inputState.buttonEventTimer) {
             // Immediately clear any pending button event timer
             if (inputState.buttonEventTimer) {
@@ -357,14 +371,48 @@ async function handleDigitalInputUpdate(update: IEvokDigitalInputUpdate) {
             });
             // If the input is configured as a button, also emit button press
             if (configuredDevice.button) { // If configured as a button
-                if (inputState.state === 0 && previousState === 1) { // And after release
+                // UPON DOWN
+                if (inputState.state === 1 && previousState === 0) {
+                    // Upon DOWN we'll use the buton timer to detect long and then repeated presses.
+                    inputState.buttonEventTimer = setTimeout(() => {
+                        inputState.buttonEventTimer = null;
+                        // UPON interval expiry, if the button is still pressed, we consider it a long press
+                        if (inputState?.state === 1) {
+                            eventEmitter.emit("button", {
+                                id: configuredDevice.id,
+                                state: inputState.state,
+                                press: "long"
+                            });
+                            // We reset the event count, as we consider a long press as a separate event from single/double/triple presses
+                            inputState.buttonEventCount = 0;
+                        }
+                        // We now set the interval which is faster, for detecting repeated presses for dimming.
+                        inputState.buttonEventTimer = setInterval(() => {
+                            // When the interval expires, if the button is still pressed,
+                            // we consider it a repeated press and emit the event.
+                            // We keep doing this until the button is released, to allow for continuous dimming while holding the button.
+                            if (inputState?.state === 1) {
+                                eventEmitter.emit("button", {
+                                    id: configuredDevice.id,
+                                    state: inputState.state,
+                                    press: "repeat"
+                                });
+                                eventEmitter.emit("button", {
+                                    id: configuredDevice.id,
+                                    state: inputState.state,
+                                    press: "down"
+                                });
+                            }
+                        }, evokConfig?.options?.maxRepeatedPressDelayMs || 500);
+
+                    }, evokConfig?.options?.minLongPressDelayMs || 800);
+                }
+                // AFTER RELEASE
+                if (inputState.state === 0 && previousState === 1) {
                     // Emit button press with the duration of the press
                     if (now - previousStateChange > 500 && !configuredDevice.disableLongPress) { // Long press
-                        eventEmitter.emit("button", {
-                            id: configuredDevice.id,
-                            state: inputState.state,
-                            press: "long"
-                        });
+                        // Ignore, as the button press will already have been emitted upon expiry of the interval
+                        // timer.
                     } else { // Single press
                         inputState.buttonEventCount += 1; // Increase the event count
                         // Start a timer to wait for further presses
@@ -378,6 +426,12 @@ async function handleDigitalInputUpdate(update: IEvokDigitalInputUpdate) {
                                 id: configuredDevice.id,
                                 state: inputState.state,
                                 press: ["single", "double", "triple"][Math.min(3, count) - 1]
+                            });
+                            // Ensure the button returns
+                            eventEmitter.emit("button", {
+                                id: configuredDevice.id,
+                                state: inputState.state,
+                                press: inputState?.state === 1 ? "down" : "up"
                             });
                         }, evokConfig?.options?.maxNextPressDelayMs || 200);
 
@@ -394,8 +448,9 @@ const DEFAULT_PULSE_DELAY_MS = 200;
  * Sets the state of a relay. This means either switching it to the desired state, or pulsing it.
  * @param configuredDeviceId The configured device ID
  * @param value The value to set (0 or 1)
+ * @param maintenanceMode If true and the relay is a pulse relay, the state will change without pulsing. This is useful for switching the initial state on startup without triggering pulses. Default is false.
  */
-export async function setEvokRelayState(configuredDeviceId: string, value: TRelayState) {
+export async function setEvokRelayState(configuredDeviceId: string, value: TRelayState, maintenanceMode = false) {
     const configuredDevice = evokConfig?.devices.relays.find((device) => {
         return device.id === configuredDeviceId;
     });
@@ -406,19 +461,55 @@ export async function setEvokRelayState(configuredDeviceId: string, value: TRela
         });
     }
 
+    let relayState = relayStates.get(configuredDevice.id);
+    if (!relayState) {
+        relayState = {
+            isPulse: true,
+            state: value,
+            pulseState: 0,
+            lastPulsed: -1,
+            lastChanged: Date.now()
+        }
+        relayStates.set(configuredDevice.id, relayState);
+    }
+
+    if (relayState.state === value) {
+        // No state change, do nothing
+        console.warn("Ignoring request to set relay state to the same value", {deviceId: configuredDeviceId, value});
+        return;
+    }
+
     if (configuredDevice.pulse) {
-        // Pulse on, regardless of the current state
-        await sendEvokMessage({cmd: "set", dev: EEvokDeviceType.relay, circuit: configuredDevice.circuit, value: 1});
-        // Schedule the off command after the pulse duration
-        setTimeout(async () => {
-            // After the pulse duration, send the off command
+        if (!maintenanceMode) {
+            // Pulse on, regardless of the current state
             await sendEvokMessage({
                 cmd: "set",
                 dev: EEvokDeviceType.relay,
                 circuit: configuredDevice.circuit,
-                value: 0
+                value: 1
             });
-        }, evokConfig?.options?.pulseDurationMs || DEFAULT_PULSE_DELAY_MS);
+            // Schedule the off command after the pulse duration
+            setTimeout(async () => {
+                // After the pulse duration, send the off command
+                await sendEvokMessage({
+                    cmd: "set",
+                    dev: EEvokDeviceType.relay,
+                    circuit: configuredDevice.circuit,
+                    value: 0
+                });
+            }, evokConfig?.options?.pulseDurationMs || DEFAULT_PULSE_DELAY_MS);
+        } else {
+            // Let's directly update the state
+            relayState.state = value;
+            relayState.lastChanged = Date.now();
+
+            // Emit the state change event to update listeners and persist the new state if needed
+            eventEmitter.emit("relay", {
+                id: configuredDevice.id,
+                state: relayState.state,
+                lastChanged: relayState.lastChanged
+            });
+        }
     } else {
         // Only send the value, the relay will handle the rest and evok will report the new state back
         await sendEvokMessage({cmd: "set", dev: EEvokDeviceType.relay, circuit: configuredDevice.circuit, value});
