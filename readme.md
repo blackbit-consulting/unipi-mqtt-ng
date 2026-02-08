@@ -1,3 +1,7 @@
+# unipi-mqtt-ng
+
+![Build Status](https://github.com/daankets/unipi-mqtt-ng/actions/workflow-status.svg?branch=develop)
+
 # About Unipi Evok to MQTT bridge for Home Assistant
 
 This application bridges a Unipi device running Evok to an MQTT broker,
