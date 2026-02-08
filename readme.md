@@ -281,10 +281,10 @@ echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
 # Install EITHER via the NPM registry
-npm install -g @blackbit.be/unipi-mqtt-ng
+npm install --registry https://npm.pkg.github.com -g @blackbit-consulting/unipi-mqtt-ng
 
 # OR install via the downloaded release file from GitHub
-npm install -g /path/to/@blackbit-unipi-mqtt-ng-x.y.z.tgz
+npm install -g /path/to/blackbit-consulting-unipi-mqtt-ng-x.y.z.tgz
 ```
 
 Upon installation, a shell script link (`unipi-evok-mqtt`) is created.
