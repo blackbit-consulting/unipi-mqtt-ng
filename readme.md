@@ -1,6 +1,6 @@
 # unipi-mqtt-ng
 
-![Build Status](https://github.com/daankets/unipi-mqtt-ng/actions/workflow-status.svg?branch=develop)
+[![Build and Package](https://github.com/blackbit-consulting/unipi-mqtt-ng/actions/workflows/build.yml/badge.svg)](https://github.com/blackbit-consulting/unipi-mqtt-ng/actions/workflows/build.yml) [![CodeQL](https://github.com/blackbit-consulting/unipi-mqtt-ng/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/blackbit-consulting/unipi-mqtt-ng/actions/workflows/github-code-scanning/codeql)
 
 # About Unipi Evok to MQTT bridge for Home Assistant
 
