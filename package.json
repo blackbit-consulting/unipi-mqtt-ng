@@ -1,5 +1,5 @@
 {
-  "name": "@blackbit.be/unipi-mqtt-ng",
+  "name": "@blackbit-consulting/unipi-mqtt-ng",
   "version": "1.0.2",
   "description": "Unipi Evok to MQTT bridge for Home Assistant, with device discovery.",
   "main": "dist/index.js",
@@ -12,6 +12,14 @@
   },
   "bin": {
     "unipi-mqtt-ng": "./bin/unipi-mqtt-ng.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:blackbit-consulting/unipi-mqtt-ng.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
   },
   "files": [
     "config/config-schema-v1.yaml",
