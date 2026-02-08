@@ -22,6 +22,9 @@ export interface IEvokConfig {
     options: IEvokOptionsConfig
 }
 
+/**
+ * Configuration options for Evok device behavior and persistence.
+ */
 export interface IEvokOptionsConfig {
     /**
      * The duration in milliseconds for which to pulse a pulse relay when triggered.

@@ -50,7 +50,8 @@ let statePersistInterval: NodeJS.Timeout | null = null;
 let lastPersistedStatesHash: string | null = null;
 
 /**
- * Starts the Evok connection
+ * Starts the Evok connection and initializes device state persistence if configured.
+ * @param config The Evok configuration object.
  */
 export async function startEvok(config: IEvokConfig) {
     evokConfig = config;
@@ -99,6 +100,10 @@ export async function startEvok(config: IEvokConfig) {
     }
 }
 
+/**
+ * Persists the states of pulse relays to disk if their state has changed.
+ * @param config The Evok configuration object.
+ */
 async function savePulseRelayStates(config: IEvokConfig) {
     // We only persist the states of pulse relays, as non-pulse relays will report their state on startup
     const statesToPersist: Array<{ id: string, state: TRelayState, lastChanged: number }> = []
@@ -131,6 +136,10 @@ async function savePulseRelayStates(config: IEvokConfig) {
     }
 }
 
+/**
+ * Loads persisted pulse relay states from disk and restores them.
+ * @param config The Evok configuration object.
+ */
 async function loadPulseRelayStates(config: IEvokConfig) {
     const filePath = config.options.persistPulseRelayStatesTo || ".evok-pulse-relay-states.json";
     const absoluteFilePath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
@@ -166,7 +175,8 @@ async function loadPulseRelayStates(config: IEvokConfig) {
 }
 
 /**
- * Stops the MQTT connection
+ * Stops the Evok connection and persists relay states if enabled.
+ * @param config The Evok configuration object.
  */
 export async function stopEvok(config: IEvokConfig) {
     console.info("Stopping Evok service...");
@@ -517,23 +527,27 @@ export async function setEvokRelayState(configuredDeviceId: string, value: TRela
 }
 
 /**
- * Adds an Evok device listener
- * @param event
- * @param listener
+ * Adds a listener for Evok device events.
+ * @param event The event type ("device", "relay", "input", "button").
+ * @param listener The listener callback function.
  */
 export function addEvokDeviceListener(event: "device" | "relay" | "input" | "button", listener: (data: IEvokDeviceEvent) => void) {
     eventEmitter.on(event, listener);
 }
 
 /**
- * Removes an Evok device listener
- * @param event
- * @param listener
+ * Removes a listener for Evok device events.
+ * @param event The event type ("device", "relay", "input", "button").
+ * @param listener The listener callback function.
  */
 export function removeEvokDeviceListener(event: "device" | "relay" | "input" | "button", listener: (data: IEvokDeviceEvent) => void) {
     eventEmitter.off(event, listener);
 }
 
+/**
+ * Lists all configured devices with their current state and last changed timestamp.
+ * @returns Array of device state objects.
+ */
 export function listDevices() {
     // We return an array of all configured devices,
     // with their current state if available

@@ -31,9 +31,8 @@ let running = false;
 let maintenanceMode = false;
 
 /**
- * This function exits the application with the provided error code.
- * It is used to handle uncaught exceptions and ensure that the application exits gracefully.
- * @param errorCode The error code to exit the application with. A non-zero error code indicates an error occurred.
+ * Exits the application with the provided error code, performing cleanup.
+ * @param errorCode The error code to exit with.
  */
 async function exitApplication(errorCode: number) {
     logIf(config?.loglevel, ELogEvel.INFO, () => {
@@ -45,7 +44,7 @@ async function exitApplication(errorCode: number) {
 }
 
 /**
- * Handle uncaught exceptions by logging the error, and exiting the application with a non-zero error code.
+ * Handles uncaught promise rejections by logging and exiting.
  */
 process.on("unhandledRejection", async (reason, promise) => {
     console.error("Unhandled Rejection at:", promise, "reason:", reason);
@@ -53,7 +52,7 @@ process.on("unhandledRejection", async (reason, promise) => {
 });
 
 /**
- * Handle uncaught exceptions by logging the error, and exiting the application with a non-zero error code.
+ * Handles uncaught exceptions by logging and exiting.
  */
 process.on("uncaughtException", async (error) => {
     console.error("Uncaught Exception:", error);
@@ -95,6 +94,10 @@ async function stopApplication() {
     removeMQTTConnectedListener(onMQTTConnected);
 }
 
+/**
+ * The main function to start the application, loading configuration,
+ * starting services, and registering event listeners.
+ */
 async function startApplication() {
     config = await loadConfig();
     logIf(config?.loglevel, ELogEvel.INFO, () => {
@@ -112,6 +115,10 @@ async function startApplication() {
     await announceMQTTAvailability(true);
 }
 
+/**
+ * Resolves the configuration file location from command line arguments or defaults.
+ * @returns The resolved configuration file path.
+ */
 function resolveConfigFileLocation(): string {
     const params = process.argv.slice(2);
     // The first parameter that does not start with a '-' is considered the config file location
@@ -128,6 +135,11 @@ function resolveConfigFileLocation(): string {
     return path.join(process.cwd(), "config/config.yaml");
 }
 
+/**
+ * Loads and validates the configuration from the configuration file.
+ * @returns The loaded configuration object.
+ * @throws Error if the configuration is invalid.
+ */
 async function loadConfig(): Promise<IConfig> {
     const configFile = await fs.promises.readFile(resolveConfigFileLocation(), "utf-8");
     const parsedConfig = parseYaml(configFile) as IConfig;
@@ -154,6 +166,10 @@ async function loadConfig(): Promise<IConfig> {
     return parsedConfig;
 }
 
+/**
+ * Handles updates to relay devices, logging the update and publishing the new state to MQTT.
+ * @param relayUpdate The relay update event data.
+ */
 function onRelayUpdate(relayUpdate: IEvokDeviceEvent) {
     logIf(config?.loglevel, ELogEvel.INFO, () => {
         console.info(`Relay update received: Id: ${relayUpdate.id}, State=${relayUpdate.state}`);
@@ -170,6 +186,10 @@ function onRelayUpdate(relayUpdate: IEvokDeviceEvent) {
         });
 }
 
+/**
+ * Handles updates to input devices, logging the update.
+ * @param inputUpdate The input update event data.
+ */
 function onInputUpdate(inputUpdate: IEvokDeviceEvent) {
     logIf(config?.loglevel, ELogEvel.INFO, () => {
         console.info(`Input update received: Id=${inputUpdate.id}, State=${inputUpdate.state}`);
@@ -177,6 +197,10 @@ function onInputUpdate(inputUpdate: IEvokDeviceEvent) {
     // TODO: Regular input events (up and down)
 }
 
+/**
+ * Handles updates to button devices, logging the update and publishing the event to MQTT.
+ * @param buttonUpdate The button update event data.
+ */
 function onButtonUpdate(buttonUpdate: IEvokDeviceEvent) {
     logIf(config?.loglevel, ELogEvel.INFO, () => {
         console.info(`Button update received: Id=${buttonUpdate.id}, State=${buttonUpdate.state}, Press: ${buttonUpdate.press}`);
@@ -203,6 +227,9 @@ function onButtonUpdate(buttonUpdate: IEvokDeviceEvent) {
         });
 }
 
+/**
+ * Handles the MQTT connection event, triggering device discovery announcement.
+ */
 function onMQTTConnected() {
     // Broadcast configured devices to MQTT for discovery by Home Assistant
     // Ensure we send the messages as 'retained'.
@@ -216,6 +243,9 @@ const AVAILABILITY_ONLINE = "online";
 
 const AVAILABILITY_OFFLINE = "offline";
 
+/**
+ * Announces the device discovery information to MQTT for Home Assistant integration.
+ */
 function announceMQTTDeviceDiscovery() {
     // First, enumerate the configured devices from the evok service
     const devices = listDevices();
@@ -329,6 +359,11 @@ function announceMQTTDeviceDiscovery() {
         });
 }
 
+/**
+ * Handles incoming MQTT messages, routing them to the appropriate handler
+ * based on the topic and message content.
+ * @param param0 The object containing topic and message.
+ */
 function onMQTTMessage({topic, message}: { topic: string, message: string }) {
     logIf(config?.loglevel, ELogEvel.DEBUG, () => {
         console.debug(`MQTT message received: Topic=${topic}, Message=${message}`);

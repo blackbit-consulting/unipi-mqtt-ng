@@ -8,7 +8,9 @@ let connected = false;
 const eventEmitter = new EventEmitter();
 
 /**
- * Starts the MQTT connection
+ * Starts the MQTT connection and subscribes to all topics.
+ * @param mqttConfig The MQTT configuration object.
+ * @param evokId The unique Evok instance identifier.
  */
 export async function startMQTT(mqttConfig: IMQTTConfig, evokId: string) {
     console.info("Starting MQTT service...");
@@ -46,7 +48,7 @@ export async function startMQTT(mqttConfig: IMQTTConfig, evokId: string) {
 }
 
 /**
- * Stops the MQTT connection
+ * Stops the MQTT connection and cleans up resources.
  */
 export async function stopMQTT() {
     console.info("Stopping MQTT service...");
