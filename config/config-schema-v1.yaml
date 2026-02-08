@@ -28,8 +28,6 @@ properties:
         type: string
       clientId:
         type: string
-      debugTopicName:
-        type: string
     additionalProperties: false
   evok:
     type: object
@@ -104,14 +102,6 @@ properties:
                 circuit:
                   type: string
                 button:
-                  type: boolean
-                disableDoublePress:
-                  type: boolean
-                disableTriplePress:
-                  type: boolean
-                disableLongPress:
-                  type: boolean
-                disableRepeatedLongPress:
                   type: boolean
               additionalProperties: false
         additionalProperties: false
