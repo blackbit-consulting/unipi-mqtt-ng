@@ -3,6 +3,8 @@ name: Build and Package
 permissions:
   contents: read
   actions: write
+  id-token: write
+  attestations: write
 
 on:
   push:
@@ -32,6 +34,10 @@ jobs:
         run: npm run compile
       - name: Pack npm package
         run: npm pack
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: '*.tgz'
       - name: Store npm package artifact
         uses: actions/upload-artifact@v4
         with:
