@@ -278,7 +278,7 @@ function announceMQTTDeviceDiscovery() {
                     pl_on: "1",
                     pl_off: "0"
                 };
-            } else if (next.device.dev == "input") {
+            } else if (next.device.dev == "digitalInput") {
                 const inputConfig = next.device as IEvokInputDeviceConfig;
                 if (inputConfig.button) { // Buttons need a separate device message for now.
                     const eventTopicName = `homeassistant/event/${config!.evok.id}/${next.device.id}/config`;

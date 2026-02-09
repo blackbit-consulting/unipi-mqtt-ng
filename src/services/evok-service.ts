@@ -11,7 +11,7 @@ export type TInputState = 0 | 1;
 
 interface IEvokCommand extends Record<string, string | number | boolean | undefined> {
     cmd: "all" | "set"
-    dev?: EEvokDeviceType,
+    dev?: string,
     circuit?: string,
     value?: TRelayState | TInputState
 }
@@ -35,6 +35,40 @@ export interface IDigitalInputState {
     lastChanged: number;
     buttonEventTimer: NodeJS.Timeout | null;
     buttonEventCount: number;
+}
+
+export enum EEvokVersion {
+    v2 = "2",
+    v3 = "3",
+}
+
+const DEFAULT_EVOK_VERSION = EEvokVersion.v2;
+
+const EVOK_DEVICE_TYPES : Record<EEvokVersion, Record<EEvokDeviceType, string>> = {
+    [EEvokVersion.v2]: {
+        relay: "relay",
+        digitalInput: "input",
+        digitalOutput: "output",
+        modbusRegister: "unit_register",
+        analogInput: "ai",
+        analogOutput: "ao",
+        neuron: "neuron",
+        led: "led",
+        watchdog: "wd",
+        uart: "uart"
+    },
+    [EEvokVersion.v3]: {
+        relay: "ro",
+        digitalInput: "di",
+        digitalOutput: "do",
+        modbusRegister: "data_point",
+        analogInput: "ai",
+        analogOutput: "ao",
+        neuron: "neuron",
+        led: "led",
+        watchdog: "wd",
+        uart: "obsolete" // UART support was removed in Evok v3
+    }
 }
 
 // This promise represents the running MQTT service
@@ -214,10 +248,10 @@ async function onEvokMessage(message: Buffer) {
         eventEmitter.emit("device", update);
         // If the device is a relay, call the handle relay update function
         switch (update.dev) {
-            case "relay":
+            case EVOK_DEVICE_TYPES[evokConfig!.options.version as EEvokVersion || DEFAULT_EVOK_VERSION].relay:
                 await handleRelayUpdate(update as IEvokRelayUpdate, isNeuronUpdate);
                 break;
-            case "input":
+            case EVOK_DEVICE_TYPES[evokConfig!.options.version as EEvokVersion || DEFAULT_EVOK_VERSION].digitalInput:
                 await handleDigitalInputUpdate(update as IEvokDigitalInputUpdate, isNeuronUpdate);
                 break;
         }
@@ -383,7 +417,7 @@ async function handleDigitalInputUpdate(update: IEvokDigitalInputUpdate, statusO
             if (configuredDevice.button) { // If configured as a button
                 // UPON DOWN
                 if (inputState.state === 1 && previousState === 0) {
-                    // Upon DOWN we'll use the buton timer to detect long and then repeated presses.
+                    // Upon DOWN, we'll use the buton timer to detect long and then repeated presses.
                     inputState.buttonEventTimer = setTimeout(() => {
                         inputState.buttonEventTimer = null;
                         // UPON interval expiry, if the button is still pressed, we consider it a long press
@@ -494,7 +528,7 @@ export async function setEvokRelayState(configuredDeviceId: string, value: TRela
             // Pulse on, regardless of the current state
             await sendEvokMessage({
                 cmd: "set",
-                dev: EEvokDeviceType.relay,
+                dev: EVOK_DEVICE_TYPES[evokConfig!.options.version as EEvokVersion || DEFAULT_EVOK_VERSION].relay,
                 circuit: configuredDevice.circuit,
                 value: 1
             });
@@ -503,7 +537,7 @@ export async function setEvokRelayState(configuredDeviceId: string, value: TRela
                 // After the pulse duration, send the off command
                 await sendEvokMessage({
                     cmd: "set",
-                    dev: EEvokDeviceType.relay,
+                    dev: EVOK_DEVICE_TYPES[evokConfig!.options.version as EEvokVersion || DEFAULT_EVOK_VERSION].relay,
                     circuit: configuredDevice.circuit,
                     value: 0
                 });

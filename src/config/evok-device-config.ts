@@ -3,14 +3,15 @@
  */
 export enum EEvokDeviceType {
     relay = "relay", // Relay module
-    input = "input", // Digital input
+    digitalOutput = "digitalOutput", // Digital output
+    digitalInput = "digitalInput", // Digital input
     led = "led", // LED module
     neuron = "neuron", // Neuron module
-    ai = "ai", // Analog input
-    ao = "ao", // Analog output
-    owbus = "owbus", // 1-Wire bus
-    uar = "uart", // UART
-    wd = "wd", // WatchDog
+    analogInput = "analogInput", // Analog input
+    analogOutput = "analogOutput", // Analog output
+    modbusRegister = "modbusRegister", // 1-Wire bus
+    uart = "uart", // UART
+    watchdog = "watchdog", // WatchDog
 
 }
 

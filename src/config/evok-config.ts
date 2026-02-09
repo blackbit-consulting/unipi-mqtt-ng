@@ -55,4 +55,8 @@ export interface IEvokOptionsConfig {
      * The file path where pulse relay states will be persisted.
      */
     persistPulseRelayStatesTo?: string
+    /**
+     * The Evok major API version
+     */
+    version: string
 }

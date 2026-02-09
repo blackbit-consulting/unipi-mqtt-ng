@@ -120,6 +120,13 @@ properties:
             type: integer
           persistPulseRelayStatesTo:
             type: string
+          version:
+            type: string
+            description: Which version of the Evok API is active. By default, the system uses Evok 2.
+            format: integer
+            enum:
+              - 2 # Evok 2
+              - 3 # Evok 3
         additionalProperties: false
     additionalProperties: false
 additionalProperties: false
