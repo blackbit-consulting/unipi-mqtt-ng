@@ -44,7 +44,7 @@ export enum EEvokVersion {
 
 const DEFAULT_EVOK_VERSION = EEvokVersion.v2;
 
-const EVOK_DEVICE_TYPES : Record<EEvokVersion, Record<EEvokDeviceType, string>> = {
+const EVOK_DEVICE_TYPES: Record<EEvokVersion, Record<EEvokDeviceType, string>> = {
     [EEvokVersion.v2]: {
         relay: "relay",
         digitalInput: "input",
@@ -64,7 +64,7 @@ const EVOK_DEVICE_TYPES : Record<EEvokVersion, Record<EEvokDeviceType, string>> 
         modbusRegister: "data_point",
         analogInput: "ai",
         analogOutput: "ao",
-        neuron: "neuron",
+        neuron: "board",
         led: "led",
         watchdog: "wd",
         uart: "obsolete" // UART support was removed in Evok v3
@@ -82,6 +82,7 @@ const digitalInputStates: Map<string, IDigitalInputState> = new Map();
 let initialized = false;
 let statePersistInterval: NodeJS.Timeout | null = null;
 let lastPersistedStatesHash: string | null = null;
+let devTypes: Record<EEvokDeviceType, string> | null = null;
 
 /**
  * Starts the Evok connection and initializes device state persistence if configured.
@@ -89,6 +90,8 @@ let lastPersistedStatesHash: string | null = null;
  */
 export async function startEvok(config: IEvokConfig) {
     evokConfig = config;
+    // Derived from validated configuration, so we are certain the value is valid.
+    devTypes = EVOK_DEVICE_TYPES[evokConfig.options.version as EEvokVersion || DEFAULT_EVOK_VERSION];
     console.info("Starting Evok service...");
     if (!evok) {
         stopping = false;
@@ -242,16 +245,18 @@ async function onEvokMessage(message: Buffer) {
         console.warn("Received non-array Evok message", updates);
         return;
     }
-    const isNeuronUpdate = updates.find((update => update.dev === "neuron"));
+    const isNeuronUpdate = updates.find((update) => {
+        return update.dev === devTypes!.neuron;
+    }) !== undefined;
 
     for (const update of updates) {
         eventEmitter.emit("device", update);
         // If the device is a relay, call the handle relay update function
         switch (update.dev) {
-            case EVOK_DEVICE_TYPES[evokConfig!.options.version as EEvokVersion || DEFAULT_EVOK_VERSION].relay:
+            case devTypes!.relay:
                 await handleRelayUpdate(update as IEvokRelayUpdate, isNeuronUpdate);
                 break;
-            case EVOK_DEVICE_TYPES[evokConfig!.options.version as EEvokVersion || DEFAULT_EVOK_VERSION].digitalInput:
+            case devTypes!.digitalInput:
                 await handleDigitalInputUpdate(update as IEvokDigitalInputUpdate, isNeuronUpdate);
                 break;
         }
@@ -528,7 +533,7 @@ export async function setEvokRelayState(configuredDeviceId: string, value: TRela
             // Pulse on, regardless of the current state
             await sendEvokMessage({
                 cmd: "set",
-                dev: EVOK_DEVICE_TYPES[evokConfig!.options.version as EEvokVersion || DEFAULT_EVOK_VERSION].relay,
+                dev: devTypes!.relay,
                 circuit: configuredDevice.circuit,
                 value: 1
             });
@@ -537,7 +542,7 @@ export async function setEvokRelayState(configuredDeviceId: string, value: TRela
                 // After the pulse duration, send the off command
                 await sendEvokMessage({
                     cmd: "set",
-                    dev: EVOK_DEVICE_TYPES[evokConfig!.options.version as EEvokVersion || DEFAULT_EVOK_VERSION].relay,
+                    dev: devTypes!.relay,
                     circuit: configuredDevice.circuit,
                     value: 0
                 });
