@@ -1,6 +1,6 @@
 {
   "name": "@blackbit-consulting/unipi-mqtt-ng",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Unipi Evok to MQTT bridge for Home Assistant, with device discovery.",
   "main": "dist/index.js",
   "scripts": {

@@ -1,4 +1,9 @@
 # History
+
+## 1.0.3 - 2026-02-09
+- Signed packages via Github Attestations.
+- Updated installation docs for github packages
+
 ## 1.0.2 - 2026-02-07
 - Fix: Do NOT attempt to change relay states if the relay states are already in the desired state.
   This will prevent the relay from being toggled again after a restart of the application, when the application would

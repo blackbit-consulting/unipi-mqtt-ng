@@ -248,8 +248,9 @@ to the system if it is run as root.
 > Note
 > 
 > This installation assumes there is a 'unipi' user on the system.
+> This is normally the case if you started from Unipi's official base os.
 
-#### Configure user
+#### Configure user (exceptional)
 ```bash
 # Check if the unipi user exists or create it
 id unipi || sudo useradd -m -s /bin/bash unipi # Will also create the group
@@ -280,12 +281,15 @@ nsolid -v
 mkdir -p ~/.npm-global
 npm config set prefix '~/.npm-global'
 
+# Tell NPM to find the packages in the github npm registry
+echo '@blackbit-consulting:registry=https://npm.pkg.github.com' >> ~/.npmrc
+
 # Add the bin location to your path via bash profile
 echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
 # Install EITHER via the NPM registry
-npm install --registry https://npm.pkg.github.com -g @blackbit-consulting/unipi-mqtt-ng
+npm install -g @blackbit-consulting/unipi-mqtt-ng
 
 # OR install via the downloaded release file from GitHub
 npm install -g /path/to/blackbit-consulting-unipi-mqtt-ng-x.y.z.tgz
