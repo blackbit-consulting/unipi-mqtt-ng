@@ -3,7 +3,7 @@
 ## 1.0.4 - 2026-02-09
 
 - Support for Evok 3 (on Debian 12). Mainly removal of some messages and some renamed types.
-    - Configurable under the evok options as `version: 2` vs `version: 3`
+    - Configurable under the evok options as `version: v2` vs `version: v3`
 
 ## 1.0.3 - 2026-02-09
 

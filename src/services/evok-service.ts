@@ -38,8 +38,8 @@ export interface IDigitalInputState {
 }
 
 export enum EEvokVersion {
-    v2 = "2",
-    v3 = "3",
+    v2 = "v2",
+    v3 = "v3",
 }
 
 const DEFAULT_EVOK_VERSION = EEvokVersion.v2;
