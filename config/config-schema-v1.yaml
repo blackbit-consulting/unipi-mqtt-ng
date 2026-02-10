@@ -123,6 +123,7 @@ properties:
           version:
             type: string
             description: Which version of the Evok API is active. By default, the system uses Evok 2.
+            default: "v2"
             enum:
               - "v2" # Evok 2
               - "v3" # Evok 3
