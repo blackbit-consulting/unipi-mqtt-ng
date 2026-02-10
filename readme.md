@@ -145,7 +145,7 @@ logLevel: info # The log level. Can be set to debug, info, warn or error. Defaul
 evok:
   id: myUnipiDevice # The ID of the Unipi device, used in MQTT topic names. Should be unique if you have multiple Unipi devices.
   options: # Options for the Evok device
-    version: 2 # The version of the Evok API to use. This can be used to support both Evok 2 and Evok 3, which have some differences in messages and types. Default is 2.
+    version: v2 # The version of the Evok API to use. This can be used to support both Evok v2 and Evok v3, which have some differences in messages and types. Default is v2.
     pulseDurationMs: 200 # The duration that the pulse relay needs to be energized to switch its state.
     persistPulseRelayStates: true # Whether to persist the state of pulse relays across restarts or power loss.
     persistPulseRelayStatesMinIntervalMs: 10000 # The minimum interval between state writes to the Unipi device.
@@ -389,7 +389,7 @@ mqtt: # The MQTT configuraiton section
 evok: # The Evok configuration section
   id: myEvokDevice1 # The evok id, must be unique if you have multiple devices. Determines the topic names.
   options: # Options for the Evok device
-    version: 2 # The version of the Evok API to use. This can be used to support both Evok 2 and Evok 3, which have some differences in messages and types. Default is 2.
+    version: v2 # The version of the Evok API to use. This can be used to support both Evok v2 and Evok v3, which have some differences in messages and types. Default is v2.
     pulseDurationMs: 200 # The duration that the pulse relay needs to be energized to switch its state.
     maxRepeatedPressDelayMs: 300 # The interval between repeat events for a button that remains pressed after the long press event. Default is 500ms.
     maxNextPressDelayMs: 450 # The max delay between a UP and consecutive DOWN event for a button for it to be considered as a next press in seqence. If released for longer than this duration, the event will fire and then start fresh from the next DOWN event.

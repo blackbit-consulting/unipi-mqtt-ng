@@ -1,4 +1,5 @@
 import {IEvokDevicesConfig} from "./evok-device-config";
+import {EEvokVersion} from "../services/evok-service";
 
 /**
  * Configuration options for connecting to the Evok server.
@@ -58,5 +59,5 @@ export interface IEvokOptionsConfig {
     /**
      * The Evok major API version
      */
-    version?: string
+    version?: EEvokVersion
 }

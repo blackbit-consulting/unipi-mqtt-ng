@@ -38,8 +38,8 @@ export interface IDigitalInputState {
 }
 
 export enum EEvokVersion {
-    v2 = "2",
-    v3 = "3",
+    v2 = "v2",
+    v3 = "v3",
 }
 
 const DEFAULT_EVOK_VERSION = EEvokVersion.v2;
@@ -63,6 +63,7 @@ const EVOK_DEVICE_TYPES: Record<EEvokVersion, TEvokRequiredDeviceTypes> = {
         analogOutput: "ao",
         neuron: "neuron",
         led: "led",
+        owbus: "owbus",
         watchdog: "wd",
         uart: "uart"
     },
@@ -75,6 +76,7 @@ const EVOK_DEVICE_TYPES: Record<EEvokVersion, TEvokRequiredDeviceTypes> = {
         analogOutput: "ao",
         neuron: "board",
         led: "led",
+        owbus: "owbus",
         watchdog: "wd",
     }
 };
@@ -430,7 +432,7 @@ async function handleDigitalInputUpdate(update: IEvokDigitalInputUpdate, statusO
             if (configuredDevice.button) { // If configured as a button
                 // UPON DOWN
                 if (inputState.state === 1 && previousState === 0) {
-                    // Upon DOWN, we'll use the buton timer to detect long and then repeated presses.
+                    // Upon DOWN, we'll use the button timer to detect long and then repeated presses.
                     inputState.buttonEventTimer = setTimeout(() => {
                         inputState.buttonEventTimer = null;
                         // UPON interval expiry, if the button is still pressed, we consider it a long press
