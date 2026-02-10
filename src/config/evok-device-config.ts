@@ -4,7 +4,7 @@
 export enum EEvokDeviceType {
     relay = "relay", // Relay module
     digitalOutput = "digitalOutput", // Digital output
-    digitalInput = "digitalInput", // Digital input
+    digitalInput = "input", // Digital input
     led = "led", // LED module
     neuron = "neuron", // Neuron module
     analogInput = "analogInput", // Analog input
