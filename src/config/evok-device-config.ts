@@ -9,7 +9,7 @@ export enum EEvokDeviceType {
     neuron = "neuron", // Neuron module
     analogInput = "analogInput", // Analog input
     analogOutput = "analogOutput", // Analog output
-    modbusRegister = "modbusRegister", // 1-Wire bus
+    modbusRegister = "modbusRegister", // Modbus register / data point
     uart = "uart", // UART
     watchdog = "watchdog", // WatchDog
 
