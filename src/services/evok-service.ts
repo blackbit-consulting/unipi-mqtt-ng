@@ -45,7 +45,7 @@ export enum EEvokVersion {
 const DEFAULT_EVOK_VERSION = EEvokVersion.v2;
 
 type TEvokRequiredDeviceTypes = {
-    [key in Exclude<EEvokDeviceType, EEvokDeviceType.uart>]: string
+    [key in Exclude<keyof typeof EEvokDeviceType, "uart">]: string
 } & {
     [EEvokDeviceType.uart]?: string
 }
