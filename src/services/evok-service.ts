@@ -44,7 +44,16 @@ export enum EEvokVersion {
 
 const DEFAULT_EVOK_VERSION = EEvokVersion.v2;
 
-const EVOK_DEVICE_TYPES: Record<EEvokVersion, Record<EEvokDeviceType, string>> = {
+type TEvokRequiredDeviceTypes = {
+    [key in Exclude<EEvokDeviceType, EEvokDeviceType.uart>]: string
+} & {
+    [EEvokDeviceType.uart]?: string
+}
+/**
+ * Mapping of Evok device types for different Evok versions.
+ *This allows us to support multiple versions of Evok with different device type naming conventions.
+ */
+const EVOK_DEVICE_TYPES: Record<EEvokVersion, TEvokRequiredDeviceTypes> = {
     [EEvokVersion.v2]: {
         relay: "relay",
         digitalInput: "input",
@@ -67,9 +76,8 @@ const EVOK_DEVICE_TYPES: Record<EEvokVersion, Record<EEvokDeviceType, string>> =
         neuron: "board",
         led: "led",
         watchdog: "wd",
-        uart: "obsolete" // UART support was removed in Evok v3
     }
-}
+};
 
 // This promise represents the running MQTT service
 let evok: WebSocket | null = null;
@@ -82,7 +90,7 @@ const digitalInputStates: Map<string, IDigitalInputState> = new Map();
 let initialized = false;
 let statePersistInterval: NodeJS.Timeout | null = null;
 let lastPersistedStatesHash: string | null = null;
-let devTypes: Record<EEvokDeviceType, string> | null = null;
+let devTypes: TEvokRequiredDeviceTypes | null = null;
 
 /**
  * Starts the Evok connection and initializes device state persistence if configured.

@@ -58,5 +58,5 @@ export interface IEvokOptionsConfig {
     /**
      * The Evok major API version
      */
-    version: string
+    version?: string
 }
