@@ -1,4 +1,5 @@
 import {IEvokDevicesConfig} from "./evok-device-config";
+import {EEvokVersion} from "../services/evok-service";
 
 /**
  * Configuration options for connecting to the Evok server.
@@ -55,4 +56,8 @@ export interface IEvokOptionsConfig {
      * The file path where pulse relay states will be persisted.
      */
     persistPulseRelayStatesTo?: string
+    /**
+     * The Evok major API version
+     */
+    version?: EEvokVersion
 }

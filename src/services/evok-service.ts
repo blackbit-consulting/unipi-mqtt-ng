@@ -11,7 +11,7 @@ export type TInputState = 0 | 1;
 
 interface IEvokCommand extends Record<string, string | number | boolean | undefined> {
     cmd: "all" | "set"
-    dev?: EEvokDeviceType,
+    dev?: string,
     circuit?: string,
     value?: TRelayState | TInputState
 }
@@ -37,6 +37,50 @@ export interface IDigitalInputState {
     buttonEventCount: number;
 }
 
+export enum EEvokVersion {
+    v2 = "v2",
+    v3 = "v3",
+}
+
+const DEFAULT_EVOK_VERSION = EEvokVersion.v2;
+
+type TEvokRequiredDeviceTypes = {
+    [key in Exclude<keyof typeof EEvokDeviceType, "uart">]: string
+} & {
+    [EEvokDeviceType.uart]?: string
+}
+/**
+ * Mapping of Evok device types for different Evok versions.
+ *This allows us to support multiple versions of Evok with different device type naming conventions.
+ */
+const EVOK_DEVICE_TYPES: Record<EEvokVersion, TEvokRequiredDeviceTypes> = {
+    [EEvokVersion.v2]: {
+        relay: "relay",
+        digitalInput: "input",
+        digitalOutput: "output",
+        modbusRegister: "unit_register",
+        analogInput: "ai",
+        analogOutput: "ao",
+        neuron: "neuron",
+        led: "led",
+        owbus: "owbus",
+        watchdog: "wd",
+        uart: "uart"
+    },
+    [EEvokVersion.v3]: {
+        relay: "ro",
+        digitalInput: "di",
+        digitalOutput: "do",
+        modbusRegister: "data_point",
+        analogInput: "ai",
+        analogOutput: "ao",
+        neuron: "board",
+        led: "led",
+        owbus: "owbus",
+        watchdog: "wd",
+    }
+};
+
 // This promise represents the running MQTT service
 let evok: WebSocket | null = null;
 let connected = false;
@@ -48,6 +92,7 @@ const digitalInputStates: Map<string, IDigitalInputState> = new Map();
 let initialized = false;
 let statePersistInterval: NodeJS.Timeout | null = null;
 let lastPersistedStatesHash: string | null = null;
+let devTypes: TEvokRequiredDeviceTypes | null = null;
 
 /**
  * Starts the Evok connection and initializes device state persistence if configured.
@@ -55,6 +100,8 @@ let lastPersistedStatesHash: string | null = null;
  */
 export async function startEvok(config: IEvokConfig) {
     evokConfig = config;
+    // Derived from validated configuration, so we are certain the value is valid.
+    devTypes = EVOK_DEVICE_TYPES[evokConfig.options.version as EEvokVersion || DEFAULT_EVOK_VERSION];
     console.info("Starting Evok service...");
     if (!evok) {
         stopping = false;
@@ -208,16 +255,18 @@ async function onEvokMessage(message: Buffer) {
         console.warn("Received non-array Evok message", updates);
         return;
     }
-    const isNeuronUpdate = updates.find((update => update.dev === "neuron"));
+    const isNeuronUpdate = updates.find((update) => {
+        return update.dev === devTypes!.neuron;
+    }) !== undefined;
 
     for (const update of updates) {
         eventEmitter.emit("device", update);
         // If the device is a relay, call the handle relay update function
         switch (update.dev) {
-            case "relay":
+            case devTypes!.relay:
                 await handleRelayUpdate(update as IEvokRelayUpdate, isNeuronUpdate);
                 break;
-            case "input":
+            case devTypes!.digitalInput:
                 await handleDigitalInputUpdate(update as IEvokDigitalInputUpdate, isNeuronUpdate);
                 break;
         }
@@ -383,7 +432,7 @@ async function handleDigitalInputUpdate(update: IEvokDigitalInputUpdate, statusO
             if (configuredDevice.button) { // If configured as a button
                 // UPON DOWN
                 if (inputState.state === 1 && previousState === 0) {
-                    // Upon DOWN we'll use the buton timer to detect long and then repeated presses.
+                    // Upon DOWN, we'll use the button timer to detect long and then repeated presses.
                     inputState.buttonEventTimer = setTimeout(() => {
                         inputState.buttonEventTimer = null;
                         // UPON interval expiry, if the button is still pressed, we consider it a long press
@@ -494,7 +543,7 @@ export async function setEvokRelayState(configuredDeviceId: string, value: TRela
             // Pulse on, regardless of the current state
             await sendEvokMessage({
                 cmd: "set",
-                dev: EEvokDeviceType.relay,
+                dev: devTypes!.relay,
                 circuit: configuredDevice.circuit,
                 value: 1
             });
@@ -503,7 +552,7 @@ export async function setEvokRelayState(configuredDeviceId: string, value: TRela
                 // After the pulse duration, send the off command
                 await sendEvokMessage({
                     cmd: "set",
-                    dev: EEvokDeviceType.relay,
+                    dev: devTypes!.relay,
                     circuit: configuredDevice.circuit,
                     value: 0
                 });

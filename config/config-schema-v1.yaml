@@ -7,9 +7,16 @@ required:
 properties:
   $schema:
     type: string
+    description: Allows for config files to declare the schema for validation.
     const: "https://blackbit.be/schemas/unipi-evok-mqtt/v1/config"
   loglevel:
     type: string
+    description: |
+      The max log level for the application. Log levels in order of severity are: error, warn, info and debug.
+      Setting the log level to a certain level will log messages of that level and all levels with higher severity.
+      For example, setting the log level to "warn" will log messages with log level "warn" and "error", but not "info"
+      or "debug". Defaults to "info". In production, it is recommended to use the info level for now, as the debug level
+      is too verbose. The info level is quite limited and balanced and should not impact performance.
     enum:
       - error
       - warn
@@ -17,19 +24,41 @@ properties:
       - debug
   mqtt:
     type: object
+    description: |
+      The MQTT configuration. The brokerUrl is required, but the username and password are optional. If the broker does
+      not require authentication, you can omit the username and password. The clientId is also optional. If not provided,
+      a random clientId will be generated. It is recommended to provide a clientId to avoid issues with some brokers
+      that do not allow multiple clients with the same clientId.
     required:
       - brokerUrl
     properties:
       brokerUrl:
+        description: |
+          The url of the MQTT broker to connect to. The url should be in the format "mqtt://hostname:port" or
+          "mqtts://hostname:port". The default should be the mqtt broker running as add-on in Home Assistant.
         type: string
       username:
+        description: |
+          The username to use for authentication with the MQTT broker.
+          If the broker does not require authentication, you can omit this property.
         type: string
       password:
+        description: |
+          The password to use for authentication with the MQTT broker.
+          If the broker does not require authentication, you can omit this property.
         type: string
       clientId:
+        description: |
+          The client id to use when connecting to the MQTT broker. If not provided, a random client id will be
+          generated. It is recommended to provide a client id to avoid issues with some brokers that do not allow
+          multiple clients with the same client id, and for easier identification of the client in the broker logs.
         type: string
     additionalProperties: false
   evok:
+    description: |
+      The Evok configuration. The id and devices properties are required. The websocketUrl is optional. If not provided,
+      the system will try to connect to the Evok API at the default url "ws://localhost/ws". The options property is
+      also optional. If not provided, the system will use the default options.
     type: object
     required:
       - id
@@ -37,16 +66,31 @@ properties:
       - options
     properties:
       id:
+        description: |
+          THe id of the UniPi device. This is used to identify the device in the MQTT topics and to connect to the
+          correct Evok API.
+        pattern: "^[a-zA-Z0-9]+$"
         type: string
       websocketUrl:
+        description: |
+          The url of the Evok API websocket. The default url is "ws://localhost/ws". If your Evok API is running on a
+          different host or port, you can specify the url here.
+        examples:
+          - ws://127.0.0.1/ws
         type: string
       devices:
+        description: |
+          The Evok devices to be configured in the integration. Evok Devices that are not included in this list will be
+          ignored by the integration.
         type: object
         required:
           - relays
           - inputs
         properties:
           relays:
+            description: |
+              The Evok relays to be configured in the integration. Evok relays that are not included in this list will
+              be ignored by the integration.
             type: array
             items:
               type: object
@@ -57,24 +101,46 @@ properties:
                 - relayType
               properties:
                 id:
+                  description: |
+                    The id of the relay. This is used to identify the relay in the MQTT topics and to connect to the
+                    correct Evok API circuit. The id must be unique among all relays and inputs.
                   type: string
                   pattern: "^[a-zA-Z0-9]+$"
                 name:
+                  description: |
+                    The name of the relay. This is used for informational purposes and is not used by the system.
+                    It can be helpful to give the relay a descriptive name to easily identify it in Home Assistant.
                   type: string
                 dev:
+                  description: The type of the relay device. For now, "relay" only.
                   type: string
                   enum:
                     - relay
                 circuit:
+                  description: |
+                    The name of the Evok circuit that the relay is connected to. This is used to connect to the correct
+                    circuit in the Evok API. The circuit name is usually in the format "x_y", where x is the number of
+                    the UniPi extension and y is the number of the circuit on that extension. For example, "2_01" is
+                    the first circuit on the second extension.
                   type: string
                 pulse:
+                  description: |
+                    Whether the relay is a pulse relay or not. A pulse relay will automatically turn off after a certain
+                    duration (configured in the options). This is useful for controlling devices that require a momentary
+                    switch, such as lights or fans. If set to true, the system will automatically turn off the relay after
+                    the configured pulse duration. If set to false, the relay will stay on until it is turned off manually.
                   type: boolean
                 relayType:
+                  description: Informational only.
                   type: string
                   enum:
                     - physical
                     - digital
                 as:
+                  description: |
+                    The type of device that the relay is controlling. This is used for informational purposes and is not
+                    used by the system. It can be helpful to give the relay a type to easily identify it in
+                    Home Assistant.
                   type: string
                   enum:
                     - switch
@@ -82,8 +148,17 @@ properties:
                     - fan
               additionalProperties: false
           inputs:
+            description: |
+              The Evok inputs to be configured in the integration. Evok inputs that are not included in this list will
+              be ignored by the integration.
             type: array
             items:
+              description: |
+                The configuration of an Evok input. The id, dev and circuit properties are required. The name and button
+                properties are optional. If the button property is set to true, the system will treat the input as a button
+                and will publish a message to the MQTT topic when the button is pressed. If the button property is set to
+                false or not provided, the system will treat the input as a regular input and will publish a message to
+                the MQTT topic when the state of the input changes.
               type: object
               required:
                 - id
@@ -91,16 +166,24 @@ properties:
                 - circuit
               properties:
                 id:
+                  description: |
+                    The id of the input. This is used to identify the input in the MQTT topics and to connect to the
+                    correct Evok API circuit. The id must be unique among all relays and inputs.
                   type: string
                   pattern: "^[a-zA-Z0-9]+$"
                 name:
+                  description: |
+                    The name of the input. This is used for informational purposes and is not used by the system.
+                    It can be helpful to give the input a descriptive name to easily identify it in Home Assistant.
                   type: string
                 dev:
+                  description: The type of the input device. For now, "input" only.
                   type: string
                   enum:
                     - input
                 circuit:
                   type: string
+                  description: The name of the Evok circuit, for example "1_01".
                 button:
                   type: boolean
               additionalProperties: false
@@ -110,16 +193,42 @@ properties:
         properties:
           pulseDurationMs:
             type: integer
+            description: |
+              The duration of a pulse in milliseconds. This is the amount of time a pulse relay will stay on before
+              automatically turning off. Tune this to the point where the pulse relays are reliably turning on and off
+              in the shortest possible timeframe.
           maxNextPressDelayMs:
             type: integer
+            description: |
+              The maximum delay between the first press of a button and the next press of the same button for them to
+              be considered as part of the same press sequence. If the delay is longer, the second press will be
+              considered as a new press and not as part of the same press sequence.
           maxRepeatedPressDelayMs:
             type: integer
+            description: |
+              The maximum delay between two presses of the same button for them to be considered as a repeated press.
+              If the delay is longer, the second press will be considered as a new press and not as a repeated press.
           persistPulseRelayStates:
             type: boolean
+            description: |
+              Weather or not to save pulse relay states to file. Defaults to true. If false, the states
+              will be lost upon restart or power loss. In such a case, all pulse relays will be set to off upon startup.
+              You will then have to correct states using the maintenance mode.
           persistPulseRelayStatesMinIntervalMs:
             type: integer
+            description: |
+              We will persist the states of the pulse relays at most once every X ms and only if there are state
+              changes to be persisted. This option is to prevent excessive disk writes in case of a lot of state changes
+              in a short timeframe.
           persistPulseRelayStatesTo:
             type: string
+            description: The location of the file where the states of the pulse relays are to be stored.
+          version:
+            type: string
+            description: Which version of the Evok API is active. By default, the system uses Evok v2.
+            enum:
+              - "v2" # Evok 2
+              - "v3" # Evok 3
         additionalProperties: false
     additionalProperties: false
 additionalProperties: false
